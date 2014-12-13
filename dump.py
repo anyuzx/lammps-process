@@ -16,8 +16,10 @@ import os
 #   class tselect : given a timesteps array, get the position of each timesteps in the dump file(using class picktime)
 #   class nextSnap : read next snapshot according to the given timesteps array
 #   class gettime : get all the timesteps from the dump file
-#   class snapdelete: delete snapshot of certain timestep and save to another file
+#   (not implemented)class snapdelete: delete snapshot of certain timestep and save to another file
 #   class tdelete: delete certain timesteps of tpocdic and timeselect
+#   class tadd: add certain timesteps into tpocdic and timeselect
+#   class getSnap: return certain snapshots 
 #
 #
 # self.snaps   list of snapshots
@@ -57,9 +59,9 @@ class dump:
         self.nottimeselect = []
         self.timeselect = []
 
-        if len(args) == 0: raise StandardError("specify dump file")
+        if len(args) == 0: raise StandardError("***** Error: specify dump file *****")
         self.file = args[0]
-        if not os.path.exists(self.file): raise StandardError("No such file")
+        if not os.path.exists(self.file): raise StandardError("***** Error: No such file *****")
 
     # ------------------------------------
 
@@ -75,16 +77,26 @@ class dump:
 
     # -----------------------------------
     def nextSnap(self):
-        self.snaps = [] 
         with open(self.file) as f:
             try:
                 f.seek(self.tpocdiciter.next())
-                self.snaps.append(self.readSnap(f))
-                return 1
+                return self.readSnap(f)
             except:
-                print "reach the last snapshot"
+                print "Reach the last snapshot"
                 return 0
                 raise
+
+    # -----------------------------------
+    def getSnap(self,t):
+        try:
+            with open(self.file) as f:
+                f.seek(self.tpocdic[t])
+                return self.readSnap(f)
+        except KeyError:
+            print '***** Error: Timestep {} not found, first use tselect method to initialize *****'.format(t)
+            return 0
+            raise
+
 
     # -----------------------------------
     # t can a integer, python list or numpy array
@@ -94,12 +106,12 @@ class dump:
         if isinstance(t,int) or isinstance(t,np.ndarray) or isinstance(t,list):
             self.timeselect = np.array([t])
             self.timeselect = self.timeselect.flatten()
-            unorder_timeselect = self.timeselect
+            unorder_timeselect = np.copy(self.timeselect)
             self.timeselect.sort()
             if 'int' not in str(self.timeselect.dtype):
-                raise ValueError("all the elements in t should be integer")
+                raise ValueError("***** Error: all the elements in t should be integer *****")
         else:
-            raise ValueError("selected t should be an integer, python list or numpy array")
+            raise ValueError("***** Error: selected t should be an integer, python list or numpy array *****")
         t_array = self.timeselect
         check = False
         t_poc, t_poc_temp = 0, 0
@@ -121,7 +133,7 @@ class dump:
                 t_poc = t_poc_temp
                 t_poc_temp = f.tell()
         if len(self.tpocdic) == 0:
-            print "no timestep is selected because there are no corresponding timesteps in dump file"
+            print "***** Error: no timestep is selected because there are no corresponding timesteps in dump file *****"
         else:
             if len(t_array) > 0:
                 self.nottimeselect = t_array
@@ -133,33 +145,84 @@ class dump:
     # tdelete class
     # delete certain selected timesteps from self.tpocdic
     def tdelete(self,t):
-    	if len(self.tpocdic) == 0:
-    		print "No timestep has been selected"
-    	else:
-    		if isinstance(t,int) or isinstance(t,np.ndarray) or isinstance(t,list):
-    			tdellst = np.array([t])
-    			tdellst = tdellst.flatten()
-    			tdellst.sort()
-    			if 'int' not in str(self.timeselect.dtype):
-    				raise ValueError("timesteps should be integer")
-    		else:
-    			raise ValueError("delected t should be an integer, python list or numpy array")
-    		
-    		# update the tpocdiciter
-    		temp_tpocdiciter = list(self.tpocdiciter)
-    		for value in tdellst:
-    			try:
-    				temp_tpocdiciter.remove(self.tpocdic[value])
-    			except ValueError:
-    				pass
-    		self.tpocdiciter = iter(temp_tpocdiciter)
+        if len(self.tpocdic) == 0:
+            print "No timestep has been selected"
+        else:
+            if isinstance(t,int) or isinstance(t,np.ndarray) or isinstance(t,list):
+                tdellst = np.array([t])
+                tdellst = tdellst.flatten()
+                if 'int' not in str(tdellst.dtype):
+                    raise ValueError("***** Error: timesteps should be integer *****")
+            else:
+                raise ValueError("***** Error: delected t should be an integer, python list or numpy array *****")
+            
+            # update the tpocdiciter
+            temp_tpocdiciter = list(self.tpocdiciter)
+            for value in tdellst:
+                try:
+                    temp_tpocdiciter.remove(self.tpocdic[value])
+                except ValueError:
+                    pass
+            self.tpocdiciter = iter(temp_tpocdiciter)
 
-    		# delete timesteps from tpocdic
-    		for i in tdellst:
-    			try:
-    				del self.tpocdic[i]
-    			except KeyError:
-    				print 'Skip timestep {} because there is no one'.format(int(i))
+            # delete timesteps from tpocdic
+            for i in tdellst:
+                try:
+                    del self.tpocdic[i]
+                except KeyError:
+                    print 'Skip timestep {} because there is no one'.format(int(i))
+
+    # -----------------------------------
+    # tadd class
+    # add certain timesteps to tpocdic and tpocdiciter
+    def tadd(self,t):
+        if isinstance(t,int)  or isinstance(t,np.ndarray) or isinstance(t,list):
+            taddlst = np.array([t])
+            taddlst = taddlst.flatten()
+            if 'int' not in str(taddlst.dtype):
+                raise ValueError("***** Error: timesteps should be integer *****")
+        else:
+            raise ValueError("***** Error: added t should an integer,python list or numpy array *****")
+
+        # first check duplicate
+        duplicate = np.intersect1d(self.timeselect,t)
+        t = np.delete(t,np.searchsorted(t,duplicate))
+        t_temp = t
+
+        # add t into tpocdic
+        index = np.searchsorted(self.timeselect,t) - 1
+        with open(self.file) as f:
+            for i in index:
+                if i == -1:
+                    pass
+                else:
+                    f.seek(self.tpocdic[self.timeselect[i]])
+                check = False
+                t_poc, t_poc_temp = 0, 0
+                fiter = iter(f.readline,'')
+                for i, line in enumerate(fiter,start=0):
+                    if check:
+                        time = int(line.split()[0])
+                        if time == t[0]:
+                            self.tpocdic[time] = t_poc
+                            t = np.delete(t,0)
+                            break
+                        check = False
+                    else:
+                        if line == 'ITEM: TIMESTEP\n':
+                            check = True
+                    t_poc = t_poc_temp
+                    t_poc_temp = f.tell()
+
+        # update tpocdiciter
+        temp_tpocdiciter = list(self.tpocdiciter)
+        for value in t_temp:
+            temp_tpocdiciter.append(self.tpocdic[value])
+        self.tpocdiciter = iter(temp_tpocdiciter)
+
+        # update timeselect
+        self.timeselect = np.insert(self.timeselect,index + 1,t_temp)
+
 
     # -----------------------------------
     def gettime(self):
@@ -209,6 +272,7 @@ class dump:
             elif i == 8 + snap.natoms:
                 snap.atoms.append(line.split())
                 break
+        snap.atoms = np.float_(snap.atoms)
         snap.box = np.array(snap.box)
         return snap
 
