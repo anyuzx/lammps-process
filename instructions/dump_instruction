@@ -1,0 +1,66 @@
+## Instructions for `dump.py`
+
+This python script is used for writing, reading and manipulating the LAMMPS dump file
+
+The script read LAMMPS dump file and find position of each timesteps using method `tselect()`. And store these position into a python dictionary where key is the timestep and value is the position of this snapshot. 
+
+After having all the needed positions, then script can read in each snapshot using method `readSnaps()` or `nextSnap()` and store it as a snapshot subclass. One can access all the information of the snapshot by its attributes `time`, `boundary`, `box`, `natoms`, `descriptor` and `atoms`.
+
+Method `gettime()` can get all the timestpes in the dump file and return a numpy array of timesteps.
+
+Method `tdelete()` can delete already selected timesteps. Then the script will not read in these snapshots.
+
+#### Basic Usage
+``` Python
+import dumpy
+import numpy as np
+
+f = dump.dump('your/dump/file/path+name')
+
+f.file 
+# return the dump file path
+
+f.tselect(500)
+# select timestep 500
+# return error if there is no such timestep
+
+f.tselect([500,1000,2000])
+# select timesteps 500 1000 2000
+# return a list of unselected timesteps if there are no such timesteps
+
+f.tselect(np.array([500,1000,2000]))
+# does the same thing as above
+# the timesteps list can be either python list or numpy array
+
+f.gettime()
+# return a array of all the timesteps in the dump file
+
+f.tselect([500,1000,2000])
+f.readSnaps()
+# read three snapshots into self.snaps list
+# one can access a snapshot through its index
+# Ex.
+f.snaps[0] # this is the timestep 500
+f.snaps[1] # this is the timestep 1000
+
+# each snapshot has attributes time, boundary, box, natoms, descriptor and atoms
+f.snaps[0].time # return the timestep of these snapshot
+f.snaps[0].boundary 
+# return the boundary string list 
+# Ex. ff pp pp 
+f.snaps[0].box # return a numpy array of box dimensions
+f.snaps[0].natoms # return the number of atoms in the snapshot
+f.snaps[0].descriptor
+# return a string list of the atoms descriptor in the dump file
+# Ex. id mol type x y z vx vy vz
+f.snaps[0].atoms
+# return python list of all the ATOMS information
+# The list is string type. It isn't converted into int or float
+# One need to convert it into 
+# The 
+
+
+```
+
+#### Classes
+* `self.tselect`: Read
