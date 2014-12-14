@@ -11,9 +11,8 @@ Several Python scripts for pre and post-processing simulation data especialy for
 
 #### Instruction
 
-* [`dump.py`](2)
+* [`dump.py`](instructions/dump_instruction.mdown)
 
 
 
 [1]: http://pizza.sandia.gov/
-[2]: instructions/dump_instruction.mdown
