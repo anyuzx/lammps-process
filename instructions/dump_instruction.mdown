@@ -4,63 +4,123 @@ This python script is used for writing, reading and manipulating the LAMMPS dump
 
 The script read LAMMPS dump file and find position of each timesteps using method `tselect()`. And store these position into a python dictionary where key is the timestep and value is the position of this snapshot. 
 
-After having all the needed positions, then script can read in each snapshot using method `readSnaps()` or `nextSnap()` and store it as a snapshot subclass. One can access all the information of the snapshot by its attributes `time`, `boundary`, `box`, `natoms`, `descriptor` and `atoms`.
+After having all the needed positions, then script can read in each snapshot using method `nextSnap()` or `getSnap()` and return snapshots subclass. One can access all the information of the snapshot by its attributes `time`, `boundary`, `box`, `natoms`, `descriptor` and `atoms`.
+
+Method `nextSnap()` will read in the snapshots as the order of the timesteps array user input.
+
+Method `getSnap()` will read in the specific snapshot given the timesteps user provide. User should first use method `tselect()` to get the position of needed snapshots.
 
 Method `gettime()` can get all the timestpes in the dump file and return a numpy array of timesteps.
 
 Method `tdelete()` can delete already selected timesteps. Then the script will not read in these snapshots.
 
+Method `tadd()` can add timesteps into already selected timesteps. This will not change the order of the method nextSnap(). The added timesteps will append to the end of order.
+
 #### Basic Usage
+
 ``` Python
 import dumpy
 import numpy as np
+```
+* import `dumpy` module and `numpy`
 
+``` Python
 f = dump.dump('your/dump/file/path+name')
+print f.file
+``` 
+* `f.file` return the path+name of the dump file
 
-f.file 
-# return the dump file path
-
+``` Python
 f.tselect(500)
-# select timestep 500
-# return error if there is no such timestep
-
 f.tselect([500,1000,2000])
-# select timesteps 500 1000 2000
-# return a list of unselected timesteps if there are no such timesteps
-
 f.tselect(np.array([500,1000,2000]))
-# does the same thing as above
-# the timesteps list can be either python list or numpy array
+```
+* timesteps provided can be an integer, python list or a numpy array.
+* `tselect()` method will renew the inner timesteps position dictionary. If you want to add timesteps into the exsiting dictionary, use method `tadd()`
 
+``` Python
 f.gettime()
-# return a array of all the timesteps in the dump file
+print f.timesteps
+```
+* The method `gettime()` will get 'all' the timesteps in the dump file and store it in array self.timesteps
 
+``` Python
 f.tselect([500,1000,2000])
-f.readSnaps()
-# read three snapshots into self.snaps list
-# one can access a snapshot through its index
-# Ex.
-f.snaps[0] # this is the timestep 500
-f.snaps[1] # this is the timestep 1000
+snap = f.getSnap('all')
+snap = f.getSnap(500)
+snap = f.getSnap([1000,2000])
+```
+* method `getSnap()` will return snapshots list.
+* If use `'all'`
+ argument, `getSnap()` will return a list of all snapshots in the order of increasing timesteps
 
-# each snapshot has attributes time, boundary, box, natoms, descriptor and atoms
-f.snaps[0].time # return the timestep of these snapshot
-f.snaps[0].boundary 
-# return the boundary string list 
-# Ex. ff pp pp 
-f.snaps[0].box # return a numpy array of box dimensions
-f.snaps[0].natoms # return the number of atoms in the snapshot
-f.snaps[0].descriptor
-# return a string list of the atoms descriptor in the dump file
-# Ex. id mol type x y z vx vy vz
-f.snaps[0].atoms
-# return python list of all the ATOMS information
-# The list is string type. It isn't converted into int or float
-# One need to convert it into 
-# The 
+```Python
+f.tselect([500,1000,1500,2000,2500,3000])
+f.tdelete([2500,3000])
+f.tadd([5000,6000])
+```
+* method `tdelete()` will delete timesteps from `tpocdic`
+* method `tadd` will add timesteps into `tpocdic`
 
+``` Python
+f.tselect([500,2000,1000])
+while 1:
+	snap = f.nextSnap()
+	if not snap:
+		break
+	else:
+		pass
 
+	do something
+```
+* method `nextSnap()` will read in the snapshots in the order of `[500,2000,1000]`
+
+``` Python
+snap = f.getSnap()
+snap.time
+snap.natoms
+snap.box
+snap.boundary
+snap.descriptor
+snap.atoms
+```
+* snap class has `time`,`natoms`,`box`,`boundary`,`descriptor` and `atoms` attributes
+
+The format of LAMMPS dump file
+```
+ITEM: TIMESTEP
+0 
+ITEM: NUMBER OF ATOMS 
+3000
+ITEM: BOX BOUNDS ff pp pp
+-15.5367 77.6735
+-15.6371 15.6371
+-18.5526 18.5526
+ITEM: ATOMS id mol type x y z vx vy vz
+186 62 2 -12.1975 -10.8793 -9.6292 0.0152 0.0027 -0.0006
+......
 ```
 
-#### Classes
-* `self.tselect`: Read
+> time : timestep
+
+`snap.time = 0`
+
+> natoms : number of atoms in the snapshot
+
+`snap.natoms = 3000`
+
+> box : numpy array of box dimension
+
+`snap.box = np.array([[-15.5367,77.6735],[-15.6371,15.6371],[-18.5526,18.5526]])`
+
+> boundary : boundary condition string 
+
+`snap.boundary = ['ff','pp','pp']`
+
+> descriptor : atoms descriptor string
+
+`snap.descriptor = ['id','mol','type','x','y','z','vx','vy','vz']`
+
+> atoms : numpy array of atoms information
+
+`snap.atoms[0] = [186.0, 62.0, 2.0, -12.1975, -10.8793, -9.6292, 0.0152, 0.0027, -0.0006]`

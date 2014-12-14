@@ -11,15 +11,13 @@ import os
 #
 # class dump
 #   class readSnap : (element module) for read single snapshot from dump file
-#   class readSnaps : given a timesteps array, read snapshots of those timesteps and store snapshots in snaps
-#   class picktime : (element module) given a timesteps array, get the postition of each snapshot in the dump file
+#   class getSnap: return certain snapshots 
 #   class tselect : given a timesteps array, get the position of each timesteps in the dump file(using class picktime)
 #   class nextSnap : read next snapshot according to the given timesteps array
 #   class gettime : get all the timesteps from the dump file
 #   (not implemented)class snapdelete: delete snapshot of certain timestep and save to another file
 #   class tdelete: delete certain timesteps of tpocdic and timeselect
 #   class tadd: add certain timesteps into tpocdic and timeselect
-#   class getSnap: return certain snapshots 
 #
 #
 # self.snaps   list of snapshots
@@ -32,48 +30,32 @@ import os
 # self.file = dump file
 # self.tpocdic = list of position of timesteps in the dump file
 # self.tpocdiciter = iterator object of self.tpocdic
-# self.timearray = list of all timesteps in the dump file
+# self.timesteps = list of all timesteps in the dump file
 # self.timeselect = list of selected timesteps
 #
 # Usage:
 # d = dump("dump.txt")
 # d.gettime()
-# d.timearray  # get all timesteps in the dump file
+# d.timesteps  # get all timesteps in the dump file
 # t = [0,500,20000]    # say we want to get the snapshots of timestep 0 500 and 20000
-# d.readSnaps(t)    # store all the wanted snapshots in list self.snaps
 # d.tselect(t)    # get the position of all wanted timesteps in the dump file and store th positions in self.tpocdic
 # d.nextSnap()    # read the timestep 0, store the snapshot in the self.snaps
 # d.nextSnap()    # read the timestep 500
 # d.nextSnap()    # read the timestep 20000
-# self.snaps will always contain one snapshot when using nextSnap() method
 
 
 class dump:
 
     # -------------------------------------
-
     def __init__(self,*args):
-        self.snaps = []
         self.tpocdic = {}
-        self.timearray = []
+        self.timesteps = []
         self.nottimeselect = []
         self.timeselect = []
 
         if len(args) == 0: raise StandardError("***** Error: specify dump file *****")
         self.file = args[0]
         if not os.path.exists(self.file): raise StandardError("***** Error: No such file *****")
-
-    # ------------------------------------
-
-    # t can be an integer, python list or numpy array
-    # Ex.
-    # To get the timesteps 0 500 20000
-    # readSnaps([0,500,20000])
-    def readSnaps(self):
-        with open(self.file) as f:
-            for item in self.tpocdiciter:
-                f.seek(item)
-                self.snaps.append(self.readSnap(f))
 
     # -----------------------------------
     def nextSnap(self):
@@ -87,16 +69,45 @@ class dump:
                 raise
 
     # -----------------------------------
-    def getSnap(self,t):
-        try:
-            with open(self.file) as f:
-                f.seek(self.tpocdic[t])
-                return self.readSnap(f)
-        except KeyError:
-            print '***** Error: Timestep {} not found, first use tselect method to initialize *****'.format(t)
-            return 0
-            raise
+    def getSnap(self,*args):
+        snaps = []
+        if len(args) == 0:
+            raise StandardError('***** Error: Please provide timesteps argument*****')
+        elif len(args) == 1:
+            t = args[0]
+        else:
+            raise StandardError('***** Error: Number of argument is larger than 1. Please check *****')
 
+        if t == 'all':
+            with open(self.file) as f:
+                for value in self.timeselect:
+                    f.seek(self.tpocdic[value])
+                    snaps.append(self.readSnap(f))
+        else:
+            if isinstance(t,int) or isinstance(t,np.ndarray) or isinstance(t,list):
+                tgetlst = np.array([t])
+                tgetlst = tgetlst.flatten()
+                if 'int' not in str(tgetlst.dtype):
+                    raise ValueError("***** Error: all the elements in t should be integer *****")
+            else:
+                raise ValueError("***** Error: selected t should be an integer, python list or numpy array *****")
+
+            with open(self.file) as f:
+                for value in tgetlst:
+                    try:
+                        f.seek(self.tpocdic[value])
+                        snaps.append(self.readSnap(f))
+                    except KeyError:
+                        print '***** Timestep {} not found, first use tselect method to initialize *****'.format(value)
+                        pass
+
+
+        if len(snaps) == 0:
+            raise StandardError('***** Timestep not found, first use tselect method to initialize *****')
+        elif len(snaps) == 1:
+            return snaps[0]
+        else:
+            return snaps
 
     # -----------------------------------
     # t can a integer, python list or numpy array
@@ -230,12 +241,12 @@ class dump:
         with open(self.file) as f:
             for i, line in enumerate(f):
                 if check:
-                    self.timearray.append(int(line.split()[0]))
+                    self.timesteps.append(int(line.split()[0]))
                     check = False
                 else:
                     if line == 'ITEM: TIMESTEP\n':
                         check = True
-        self.timearray = np.array(self.timearray)
+        self.timesteps = np.array(self.timesteps)
 
     # -------------------------------------
     # read a single snapshot
