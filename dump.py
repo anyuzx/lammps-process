@@ -1,7 +1,7 @@
-#
+# ---------------------------------------------
 # Read, write and manipulate LAMMPS dump file
 # Read one or several snapshots at a time
-#
+# ---------------------------------------------
 
 # NEED NUMPY 
 import numpy as np
