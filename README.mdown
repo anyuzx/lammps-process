@@ -16,4 +16,4 @@ Several Python scripts for pre and post-processing simulation data especialy for
 
 
 [1]: http://pizza.sandia.gov/
-[2]: https://github.com/anyuzx/lammps-process/blob/master/instructions/dump_instruction.mdown
+[2]: instructions/dump_instruction.mdown
