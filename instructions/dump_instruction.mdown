@@ -53,6 +53,7 @@ snap = f.getSnap([1000,2000])
 * method `getSnap()` will return snapshots list.
 * If use `'all'`
  argument, `getSnap()` will return a list of all snapshots in the order of increasing timesteps
+* Caution needs to be given using this method. Trajectory sometimes is very big, so store all snaps at one time is not memory efficient.
 
 ```Python
 f.tselect([500,1000,1500,2000,2500,3000])
