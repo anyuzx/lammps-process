@@ -12,9 +12,9 @@ Method `getSnap()` will read in the specific snapshot given the timesteps user p
 
 Method `gettime()` can get all the timestpes in the dump file and return a numpy array of timesteps.
 
-Method `tdelete()` can delete already selected timesteps. Then the script will not read in these snapshots.
+Method `tdelete()` can delete already existing selected timesteps. Then the script will not read in these snapshots.
 
-Method `tadd()` can add timesteps into already selected timesteps. This will not change the order of the method nextSnap(). The added timesteps will append to the end of order.
+Method `tadd()` can add timesteps into already selected timesteps. This will not change the order of the method nextSnap(). The added timesteps will append to the end of list.
 
 #### Basic Usage
 
