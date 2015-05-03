@@ -5,7 +5,7 @@ Several Python scripts for pre and post-processing simulation data especialy for
 -------------------------------
 
 #### Scripts list
-* dump.py : used for read, write and manipulate LAMMPS dump file
+* [`dump.py`](instructions/dump_instruction.mdown) : used for read, write and manipulate LAMMPS dump file
 
 -------------------------------
 
